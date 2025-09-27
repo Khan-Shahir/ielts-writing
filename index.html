@@ -80,11 +80,13 @@
       if (saved.answer)  answer.value  = saved.answer;
     } catch (_) {}
 
-    // Improved word counter (ignores punctuation)
+    // Robust word counter (ignores punctuation)
     function countWords(t) {
-      const cleaned = t.replace(/[.,!?;:()"'`]/g, " "); // remove punctuation
-      const words = cleaned.trim().split(/\s+/).filter(Boolean);
-      return words.length;
+      const tokens = (t || "")
+        .replace(/[-–—]/g, " ")                 // dashes → space
+        .replace(/[.,!?;:()[\]{}"“”‘’`]/g, " ") // punctuation → space
+        .match(/\b[\p{L}\p{N}']+\b/gu);         // words (letters/numbers/apostrophes)
+      return tokens ? tokens.length : 0;
     }
 
     function refreshCounter() {
@@ -127,10 +129,8 @@
         const text = await res.text();
         if (res.ok && text.startsWith('OK')) {
           document.getElementById('done').classList.remove('hidden');
-          // Clear autosave after successful submit
-          localStorage.removeItem(LS_KEY);
-          // Lock UI
-          student.readOnly = true; answer.readOnly = true;
+          localStorage.removeItem(LS_KEY); // clear autosave
+          student.readOnly = true; answer.readOnly = true; // lock inputs
         } else {
           alert('Submission error: ' + text);
           submitBtn.disabled = false;
@@ -143,3 +143,4 @@
   </script>
 </body>
 </html>
+
