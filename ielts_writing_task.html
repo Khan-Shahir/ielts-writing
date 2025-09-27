@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IELTS Mock Writing Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; line-height: 1.5; }
+    h1 { margin-bottom: 8px; }
+    .note { color: #444; margin-bottom: 16px; }
+    label { font-weight: 600; }
+    input, textarea, button { font-size: 16px; }
+    input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; margin: 8px 0 16px; }
+    textarea { width: 100%; height: 340px; padding: 12px; box-sizing: border-box; margin-top: 8px; }
+    .bar { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; margin: 8px 0 16px; }
+    .badge { font-weight: 700; }
+    .ok { color: #0a7f00; }
+    .warn { color: #c40000; }
+    .footer { margin-top: 12px; font-size: 14px; color: #666; }
+    .row { margin: 20px 0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>IELTS Mock — Writing Task</h1>
+  <div class="note">
+    <b>Instructions:</b> Write an essay of at least <b>250 words</b>. The word counter updates live. When you click Submit,
+    your answer is saved and you’ll see a confirmation. Do not refresh the page during writing.
+  </div>
+
+  <form id="form">
+    <div class="row">
+      <label for="student">Student ID / Name</label>
+      <input id="student" name="student" type="text" placeholder="e.g., AUS-2025-017 · Shams" required />
+    </div>
+
+    <div class="row">
+      <label>Task 2 Prompt</label>
+      <div class="note">
+        Some people believe that technology has made our lives too complex, while others think it has made life easier.
+        Discuss both views and give your own opinion. Give reasons for your answer and include relevant examples.
+        <br />Write at least <b>250 words</b>.
+      </div>
+      <textarea id="answer" name="answer" placeholder="Start writing here..." required></textarea>
+
+      <div class="bar">
+        <div id="wc" class="badge">Words: 0</div>
+        <div id="status" class="badge warn">Minimum: 250 words</div>
+        <div id="saveStatus" class="footer">Autosave: —</div>
+      </div>
+    </div>
+
+    <input type="hidden" id="wordCount" name="wordCount" value="0" />
+    <button id="submitBtn" type="submit">Submit</button>
+    <div id="done" class="note hidden">✅ Submitted! You may inform the invigilator.</div>
+  </form>
+
+  <script>
+    const MIN_WORDS = 250;
+    const LS_KEY = "ielts_writing_autosave_v1";
+    const form = document.getElementById('form');
+    const student = document.getElementById('student');
+    const answer = document.getElementById('answer');
+    const wc = document.getElementById('wc');
+    const status = document.getElementById('status');
+    const saveStatus = document.getElementById('saveStatus');
+    const wordCountInput = document.getElementById('wordCount');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Restore autosave
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+      if (saved.student) student.value = saved.student;
+      if (saved.answer)  answer.value  = saved.answer;
+    } catch (_) {}
+
+    // Word counter
+    function countWords(t) {
+      const words = t.trim().split(/\\s+/).filter(Boolean);
+      return t.trim().length === 0 ? 0 : words.length;
+    }
+    function refreshCounter() {
+      const n = countWords(answer.value);
+      wc.textContent = "Words: " + n;
+      wordCountInput.value = String(n);
+      if (n >= MIN_WORDS) {
+        status.textContent = "OK: minimum reached";
+        status.classList.remove('warn'); status.classList.add('ok');
+        submitBtn.disabled = false;
+      } else {
+        status.textContent = "Minimum: " + MIN_WORDS + " words";
+        status.classList.remove('ok'); status.classList.add('warn');
+        submitBtn.disabled = true;
+      }
+    }
+    answer.addEventListener('input', refreshCounter);
+    refreshCounter();
+
+    // Autosave every 3s
+    setInterval(() => {
+      const payload = { student: student.value, answer: answer.value, ts: Date.now() };
+      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+      saveStatus.textContent = "Autosave: " + new Date().toLocaleTimeString();
+    }, 3000);
+
+    // Submit to Apps Script (Google Sheet)
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLRfeXlF90qvbcBlQyn6tQqvXtML5vNfWsG8wutoCjfZ43cILMdxVn_QmXBf4WWMxnug/exec"; // <- replace with your Apps Script Web App URL
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      refreshCounter();
+      if (Number(wordCountInput.value) < MIN_WORDS) return;
+
+      submitBtn.disabled = true;
+      try {
+        const fd = new FormData(form);
+        const res = await fetch(SCRIPT_URL, { method: 'POST', body: fd });
+        const text = await res.text();
+        if (res.ok && text.startsWith('OK')) {
+          document.getElementById('done').classList.remove('hidden');
+          // Clear autosave after successful submit
+          localStorage.removeItem(LS_KEY);
+          // Lock UI
+          student.readOnly = true; answer.readOnly = true;
+        } else {
+          alert('Submission error: ' + text);
+          submitBtn.disabled = false;
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
