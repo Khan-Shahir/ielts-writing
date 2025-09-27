@@ -41,7 +41,13 @@
         Discuss both views and give your own opinion. Give reasons for your answer and include relevant examples.
         <br />Write at least <b>250 words</b>.
       </div>
-      <textarea id="answer" name="answer" placeholder="Start writing here..." required></textarea>
+      <textarea id="answer" name="answer" 
+        placeholder="Start writing here..." 
+        required 
+        spellcheck="false" 
+        autocorrect="off" 
+        autocomplete="off" 
+        autocapitalize="off"></textarea>
 
       <div class="bar">
         <div id="wc" class="badge">Words: 0</div>
@@ -74,11 +80,13 @@
       if (saved.answer)  answer.value  = saved.answer;
     } catch (_) {}
 
-    // Word counter
+    // Improved word counter (ignores punctuation)
     function countWords(t) {
-      const words = t.trim().split(/\\s+/).filter(Boolean);
-      return t.trim().length === 0 ? 0 : words.length;
+      const cleaned = t.replace(/[.,!?;:()"'`]/g, " "); // remove punctuation
+      const words = cleaned.trim().split(/\s+/).filter(Boolean);
+      return words.length;
     }
+
     function refreshCounter() {
       const n = countWords(answer.value);
       wc.textContent = "Words: " + n;
@@ -93,6 +101,7 @@
         submitBtn.disabled = true;
       }
     }
+
     answer.addEventListener('input', refreshCounter);
     refreshCounter();
 
@@ -104,7 +113,7 @@
     }, 3000);
 
     // Submit to Apps Script (Google Sheet)
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLRfeXlF90qvbcBlQyn6tQqvXtML5vNfWsG8wutoCjfZ43cILMdxVn_QmXBf4WWMxnug/exec"; // <- replace with your Apps Script Web App URL
+    const SCRIPT_URL = "https://SCRIPT_URL_HERE"; // <- replace with your Apps Script Web App URL
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
