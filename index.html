@@ -7,25 +7,29 @@
   <style>
     body { font-family: Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; line-height: 1.5; }
     h1 { margin-bottom: 8px; }
+    h2 { margin: 28px 0 6px; }
     .note { color: #444; margin-bottom: 16px; }
     label { font-weight: 600; }
     input, textarea, button { font-size: 16px; }
     input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; margin: 8px 0 16px; }
-    textarea { width: 100%; height: 340px; padding: 12px; box-sizing: border-box; margin-top: 8px; }
+    textarea { width: 100%; height: 240px; padding: 12px; box-sizing: border-box; margin-top: 8px; }
     .bar { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; margin: 8px 0 16px; }
     .badge { font-weight: 700; }
     .ok { color: #0a7f00; }
     .warn { color: #c40000; }
     .footer { margin-top: 12px; font-size: 14px; color: #666; }
-    .row { margin: 20px 0; }
+    .row { margin: 18px 0; }
     .hidden { display: none; }
+    .muted { color: #666; }
+    button { padding: 10px 16px; }
   </style>
 </head>
 <body>
-  <h1>IELTS Mock — Writing Task</h1>
+  <h1>IELTS Mock — Writing Tasks</h1>
   <div class="note">
-    <b>Instructions:</b> Write an essay of at least <b>250 words</b>. The word counter updates live. When you click Submit,
-    your answer is saved and you’ll see a confirmation. Do not refresh the page during writing.
+    <b>Instructions:</b> Complete both tasks. Targets are <b>150 words</b> for Task 1 and <b>250 words</b> for Task 2.
+    The counters update live. You <b>can submit at any time</b>, but responses below the targets will be marked as
+    <i>below minimum</i>. Do not refresh the page during writing.
   </div>
 
   <form id="form">
@@ -34,94 +38,122 @@
       <input id="student" name="student" type="text" placeholder="e.g., AUS-2025-017 · Shams" required />
     </div>
 
-    <div class="row">
-      <label>Task 2 Prompt</label>
-      <div class="note">
-        Some people believe that technology has made our lives too complex, while others think it has made life easier.
-        Discuss both views and give your own opinion. Give reasons for your answer and include relevant examples.
-        <br />Write at least <b>250 words</b>.
-      </div>
-      <textarea id="answer" name="answer" 
-        placeholder="Start writing here..." 
-        required 
-        spellcheck="false" 
-        autocorrect="off" 
-        autocomplete="off" 
-        autocapitalize="off"></textarea>
-
-      <div class="bar">
-        <div id="wc" class="badge">Words: 0</div>
-        <div id="status" class="badge warn">Minimum: 250 words</div>
-        <div id="saveStatus" class="footer">Autosave: —</div>
-      </div>
+    <!-- TASK 1 -->
+    <h2>Task 1</h2>
+    <div class="note">
+      You should spend about 20 minutes on this task. Summarise the information presented (e.g., a graph, chart,
+      process or map), selecting and reporting the main features and making comparisons where relevant.
+      <br />Write at least <b>150 words</b>.
     </div>
 
-    <input type="hidden" id="wordCount" name="wordCount" value="0" />
+    <label for="answer1" class="muted">Your Task 1 Answer</label>
+    <textarea id="answer1" name="answer1"
+      placeholder="Write Task 1 here..."
+      required
+      spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off"></textarea>
+
+    <div class="bar">
+      <div id="wc1" class="badge">Task 1 Words: 0</div>
+      <div id="status1" class="badge warn">Minimum: 150 words</div>
+    </div>
+
+    <!-- TASK 2 -->
+    <h2>Task 2</h2>
+    <div class="note">
+      You should spend about 40 minutes on this task.
+      Some people believe that technology has made our lives too complex, while others think it has made life easier.
+      Discuss both views and give your own opinion. Give reasons for your answer and include relevant examples.
+      <br />Write at least <b>250 words</b>.
+    </div>
+
+    <label for="answer2" class="muted">Your Task 2 Answer</label>
+    <textarea id="answer2" name="answer2"
+      placeholder="Write Task 2 here..."
+      required
+      spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off"></textarea>
+
+    <div class="bar">
+      <div id="wc2" class="badge">Task 2 Words: 0</div>
+      <div id="status2" class="badge warn">Minimum: 250 words</div>
+      <div id="saveStatus" class="footer">Autosave: —</div>
+    </div>
+
+    <!-- Hidden fields sent with submission -->
+    <input type="hidden" id="wordCount1" name="wordCount1" value="0" />
+    <input type="hidden" id="wordCount2" name="wordCount2" value="0" />
+
     <button id="submitBtn" type="submit">Submit</button>
     <div id="done" class="note hidden">✅ Submitted! You may inform the invigilator.</div>
   </form>
 
   <script>
-    const MIN_WORDS = 250;
-    const LS_KEY = "ielts_writing_autosave_v1";
+    const MIN1 = 150;
+    const MIN2 = 250;
+    const LS_KEY = "ielts_writing_autosave_v2";
+
     const form = document.getElementById('form');
     const student = document.getElementById('student');
-    const answer = document.getElementById('answer');
-    const wc = document.getElementById('wc');
-    const status = document.getElementById('status');
+    const answer1 = document.getElementById('answer1');
+    const answer2 = document.getElementById('answer2');
+    const wc1 = document.getElementById('wc1');
+    const wc2 = document.getElementById('wc2');
+    const status1 = document.getElementById('status1');
+    const status2 = document.getElementById('status2');
     const saveStatus = document.getElementById('saveStatus');
-    const wordCountInput = document.getElementById('wordCount');
+    const wordCount1 = document.getElementById('wordCount1');
+    const wordCount2 = document.getElementById('wordCount2');
     const submitBtn = document.getElementById('submitBtn');
 
     // Restore autosave
     try {
       const saved = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
       if (saved.student) student.value = saved.student;
-      if (saved.answer)  answer.value  = saved.answer;
+      if (saved.answer1) answer1.value = saved.answer1;
+      if (saved.answer2) answer2.value = saved.answer2;
     } catch (_) {}
 
-    // Simple and reliable word counter
+    // Simple & reliable word counter
     function countWords(t) {
       const tokens = (t || "")
-        .replace(/[^A-Za-z0-9' ]/g, " ") // replace punctuation with spaces
+        .replace(/[^A-Za-z0-9' ]/g, " ") // punctuation -> space
         .trim()
-        .split(/\s+/)                     // split by spaces
-        .filter(Boolean);                 // remove empties
+        .split(/\s+/)
+        .filter(Boolean);
       return tokens.length;
     }
 
-    function refreshCounter() {
-      const n = countWords(answer.value);
-      wc.textContent = "Words: " + n;
-      wordCountInput.value = String(n);
-      if (n >= MIN_WORDS) {
-        status.textContent = "OK: minimum reached";
-        status.classList.remove('warn'); status.classList.add('ok');
-        submitBtn.disabled = false;
-      } else {
-        status.textContent = "Minimum: " + MIN_WORDS + " words";
-        status.classList.remove('ok'); status.classList.add('warn');
-        submitBtn.disabled = true;
-      }
+    function refreshCounters() {
+      const n1 = countWords(answer1.value);
+      const n2 = countWords(answer2.value);
+      wc1.textContent = "Task 1 Words: " + n1;
+      wc2.textContent = "Task 2 Words: " + n2;
+      wordCount1.value = String(n1);
+      wordCount2.value = String(n2);
+
+      if (n1 >= MIN1) { status1.textContent = "OK: minimum reached"; status1.classList.remove('warn'); status1.classList.add('ok'); }
+      else { status1.textContent = "Minimum: " + MIN1 + " words"; status1.classList.remove('ok'); status1.classList.add('warn'); }
+
+      if (n2 >= MIN2) { status2.textContent = "OK: minimum reached"; status2.classList.remove('warn'); status2.classList.add('ok'); }
+      else { status2.textContent = "Minimum: " + MIN2 + " words"; status2.classList.remove('ok'); status2.classList.add('warn'); }
     }
 
-    answer.addEventListener('input', refreshCounter);
-    refreshCounter();
+    answer1.addEventListener('input', refreshCounters);
+    answer2.addEventListener('input', refreshCounters);
+    refreshCounters();
 
     // Autosave every 3s
     setInterval(() => {
-      const payload = { student: student.value, answer: answer.value, ts: Date.now() };
+      const payload = { student: student.value, answer1: answer1.value, answer2: answer2.value, ts: Date.now() };
       localStorage.setItem(LS_KEY, JSON.stringify(payload));
       saveStatus.textContent = "Autosave: " + new Date().toLocaleTimeString();
     }, 3000);
 
     // Submit to Apps Script (Google Sheet)
-    const SCRIPT_URL = "https://SCRIPT_URL_HERE"; // <- replace with your Apps Script Web App URL
+    const SCRIPT_URL = "https://SCRIPT_URL_HERE"; // <-- replace with your Apps Script Web App URL
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      refreshCounter();
-      if (Number(wordCountInput.value) < MIN_WORDS) return;
+      refreshCounters(); // make sure counts are up to date
 
       submitBtn.disabled = true;
       try {
@@ -130,8 +162,8 @@
         const text = await res.text();
         if (res.ok && text.startsWith('OK')) {
           document.getElementById('done').classList.remove('hidden');
-          localStorage.removeItem(LS_KEY); // clear autosave
-          student.readOnly = true; answer.readOnly = true; // lock inputs
+          localStorage.removeItem(LS_KEY);
+          student.readOnly = true; answer1.readOnly = true; answer2.readOnly = true;
         } else {
           alert('Submission error: ' + text);
           submitBtn.disabled = false;
