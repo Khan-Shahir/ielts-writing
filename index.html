@@ -80,13 +80,14 @@
       if (saved.answer)  answer.value  = saved.answer;
     } catch (_) {}
 
-    // Robust word counter (ignores punctuation)
+    // Simple and reliable word counter
     function countWords(t) {
       const tokens = (t || "")
-        .replace(/[-–—]/g, " ")                 // dashes → space
-        .replace(/[.,!?;:()[\]{}"“”‘’`]/g, " ") // punctuation → space
-        .match(/\b[\p{L}\p{N}']+\b/gu);         // words (letters/numbers/apostrophes)
-      return tokens ? tokens.length : 0;
+        .replace(/[^A-Za-z0-9' ]/g, " ") // replace punctuation with spaces
+        .trim()
+        .split(/\s+/)                     // split by spaces
+        .filter(Boolean);                 // remove empties
+      return tokens.length;
     }
 
     function refreshCounter() {
@@ -143,4 +144,3 @@
   </script>
 </body>
 </html>
-
